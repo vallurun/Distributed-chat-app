@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Distributed Chat - Frontend</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; }
+    #log { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 8px; }
+  </style>
+</head>
+<body>
+<h1>Distributed Chat</h1>
+<label>Username: <input id="username" placeholder="nimeesha"/></label>
+<div id="log"></div>
+<input id="msg" placeholder="Type a message..." />
+<button id="send">Send</button>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script>
+  let stompClient;
+  function connect() {
+    const socket = new SockJS("http://localhost:8080/ws-chat");
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function () {
+      stompClient.subscribe('/topic/public', function (frame) {
+        const msg = JSON.parse(frame.body);
+        const div = document.getElementById('log');
+        const p = document.createElement('p');
+        p.textContent = msg.from + ": " + msg.content;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+      });
+    });
+  }
+  document.getElementById('send').onclick = function () {
+    const username = document.getElementById('username').value || 'anon';
+    const content = document.getElementById('msg').value;
+    if (!content) return;
+    stompClient.send("/app/chat.send", {}, JSON.stringify({from: username, content}));
+    document.getElementById('msg').value = "";
+  };
+  connect();
+</script>
+</body>
+</html>
